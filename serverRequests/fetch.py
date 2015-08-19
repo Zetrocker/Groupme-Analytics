@@ -6,28 +6,8 @@ import time
 import sys
 import os
 
-token = str
-
-with open('authentication.cfg') as cfg:
-    token = cfg.read()
-    token = json.loads(token)
-    token = token[0]
-    cfg.close()
-
-group = '1324623'
-
 url = "https://api.groupme.com/v3/groups"
 messagesURL = url + "/" + group + '/messages'
-
-payload = {
-    'Accept': 'application/json, text/javascript',
-    'Accept-Charset': 'utf-8',
-    'Content-Type': 'application/json',
-    'Host': 'api.groupme.com',
-    'Referer': 'https://api.groupme.com/v3/groups/' + group,
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.45 Safari/537.22',
-    'X-Access-Token': token
-}
 
 groupData = 'groups.json'
 chatLogFileName = 'transcript-' + group + '.json'
@@ -35,6 +15,7 @@ humanLogFileName = 'transcript-' + group + '.txt'
 params = {}
 
 mostRecent = int
+
 
 def default(self, o):
     try:
@@ -56,7 +37,7 @@ def default(self, o):
 # print(iter(data))
 # print(data)
 
-def fetchMessages(messagesURL, params):
+def fetchMessages(messagesURL):
     mostRecent = mostRecentIs(group)
     jsonData = {'messages': []}
     fetchComplete = False
@@ -94,7 +75,7 @@ def fetchMessages(messagesURL, params):
             messages = data[u'response'][u'messages']
             messages = zip(messages)
             first = data[u'response'][u'messages'][0][u'id']
-            params= {'before_id': first, 'limit': limit}
+            params = {'before_id': first, 'limit': limit}
             for x in messages:
                 count += 1
                 print(x[0][u'id'])
@@ -111,26 +92,29 @@ def fetchMessages(messagesURL, params):
             fetchComplete = True
             return fetchComplete
 
-def fetchGroups(url, params):
-        data = requestServerData(url, params)
-        metaCode = data[u'meta'][u'code']
-        if metaCode != 200:
-            error(metaCode)
-        if os.path.isfile(groupData) is False:
-            with open(groupData, "w+") as f:
-                data = data[u'response']
-                json.dump(data, f, ensure_ascii=False, indent=4)
-                f.close()
-        else:
-            file = open(groupData, "w+")
+
+def fetchGroups(url):
+    data = requestServerData(url, params={})
+    metaCode = data[u'meta'][u'code']
+    if metaCode != 200:
+        error(metaCode)
+    if os.path.isfile(groupData) is False:
+        with open(groupData, "w+") as f:
             data = data[u'response']
-            json.dump(data, file, ensure_ascii=False, indent=4)
-            file.close()
+            json.dump(data, f, ensure_ascii=False, indent=4)
+            f.close()
+    else:
+        groups = {}
+        file = open(groupData, "w+")
+        groups = (data[u'response'])
+        json.dump(groups, file, ensure_ascii=False, indent=4)
+        file.close()
+
 
 def error(metaCode):
-            print('Fetch failed with code', metaCode)
-            complete = True
-            return complete
+    print('Fetch failed with code', metaCode)
+    complete = True
+    return complete
 
 
 def mostRecentIs(group) -> object:
@@ -148,20 +132,38 @@ def mostRecentIs(group) -> object:
             mostRecentMessageID = x[u'messages'][u'last_message_id']
             return mostRecentMessageID
 
+
 def requestServerData(url, params):
     """
 
     :rtype : JSON object
     """
-    global payload
+    with open('configuration.cfg') as cfg:
+        token = cfg.read()
+        token = json.loads(token)
+        token = token[u'authentication'][0]
+        cfg.close()
+
+    payload = {
+        'Accept': 'application/json, text/javascript',
+        'Accept-Charset': 'utf-8',
+        'Content-Type': 'application/json',
+        'Host': 'api.groupme.com',
+        'Referer': 'https://api.groupme.com/v3/groups/' + group,
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.45 Safari/537.22',
+        'X-Access-Token': token
+    }
+
     r = requests.get(url, params=params, headers=payload)
     data = r.text.replace(
-        '\ufffd', ':emoji:').replace('\U0001f601', ':Grinning-Smiley-With-Smiling Eyes:').replace('\U0001f60d', ':Grinning-Smiley-With-Heart-Eyes').replace('\U0001f44c', ':Okay-Hand-Sign:')
+        '\ufffd', ':emoji:').replace('\U0001f601', ':Grinning-Smiley-With-Smiling Eyes:').replace('\U0001f60d',
+                                                                                                  ':Grinning-Smiley-With-Heart-Eyes').replace(
+        '\U0001f44c', ':Okay-Hand-Sign:')
     data = json.loads(data)
     return data
 
 
-fetchGroups(url, params={})
-fetchMessages(messagesURL, params={})
+    # fetchGroups(url, params={})
+    # fetchMessages(messagesURL, params={})
 
-# data = requestServerData(messagesURL, params={})
+    # data = requestServerData(messagesURL, params={})

@@ -1,15 +1,24 @@
 __author__ = 'Zetrocker'
-import json
-import requests
-import time
 import sys
-import os
+
+from serverRequests.setup import makeConfigFile, loadgroups
+
+from serverRequests.fetch import fetchGroups, url, messagesURL
+
+from serverRequests.menus import selectGroupMenu
+
+# makeConfigFile()
+
+# fetchGroups(url)
 
 
-from serverRequests.setup import makeConfigFile
+group = loadgroups(groupsJson='groups.json')
 
-makeConfigFile()
+group = selectGroupMenu(group)
 
-from serverRequests.fetch import fetchMessages, url, params
+groupID = group[u'id']
 
-fetchMessages(url, params, True)
+print(group)
+
+sys.exit()
+
