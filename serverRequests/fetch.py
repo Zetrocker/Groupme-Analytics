@@ -7,14 +7,12 @@ import sys
 import os
 
 url = "https://api.groupme.com/v3/groups"
-messagesURL = url + "/" + group + '/messages'
+
 
 groupData = 'groups.json'
-chatLogFileName = 'transcript-' + group + '.json'
-humanLogFileName = 'transcript-' + group + '.txt'
-params = {}
 
-mostRecent = int
+
+# humanLogFileName = 'transcript-' + group + '.txt'
 
 
 def default(self, o):
@@ -27,41 +25,23 @@ def default(self, o):
     # Let the base class default method raise the TypeError
     return json.JSONEncoder.default(self, o)
 
-
-# print('data has now been put to json.loads(). This makes the type: ', type(data))
-# count = data[u'response'][u'count']
-# print(data)
-# data = data[u'response'][u'messages']
-# data[u'response'][u'messages']
-# data = default(data, data)
-# print(iter(data))
-# print(data)
-
-def fetchMessages(messagesURL):
-    mostRecent = mostRecentIs(group)
+def fetchmessages(group):
+    groupID = group[u'id']
+    messagesURL = 'https://api.groupme.com/v3/groups/' + groupID + '/messages'
+    mostRecent = group[u'messages'][u'last_message_id']
     jsonData = {'messages': []}
+    chatLogFileName = 'transcript-' + group + '.json'
     fetchComplete = False
     limit = 100
-    data = requestServerData(messagesURL, params={'before_id': mostRecent, 'limit': limit})
-    totalMessages = int
-    file = open(groupData, 'r+')
-    with file as f:
-        index = json.load(f)
-        # totalMessages = groupdata[0][u'id'][group][0]
-        i = -1
-        for x in f:
-            i += 1
-            id = index[i][u'id']
-            if id == group:
-                totalMessages = index[i][u'messages'][u'count']
-        f.close()
+    data = requestserverdata(messagesURL, params={'before_id': mostRecent, 'limit': limit})
+    totalMessages = group[u'messages'][u'count']
 
     print(totalMessages, 'messages remain.')
     count = 0
     testLimit = 1000
     while (fetchComplete is not True):
-        testLimit -= 1
-        print(totalMessages, 'remain')
+        testLimit -= 100
+        print(totalMessages - limit, 'remain')
         if data[u'meta'][u'code'] == 304 or testLimit <= 0:
             print('No more messages to fetch!')
             print('Dumping to', chatLogFileName, ".")
@@ -70,7 +50,7 @@ def fetchMessages(messagesURL):
                     json.dump(jsonData, f, ensure_ascii=False, indent=4)
                     f.close()
             fetchComplete = True
-            return fetchComplete
+            break
         if data[u'meta'][u'code'] == 200:
             messages = data[u'response'][u'messages']
             messages = zip(messages)
@@ -85,7 +65,7 @@ def fetchMessages(messagesURL):
                 print(totalMessages, 'remain.')
                 jsonData.update(nextMessage)
             if data[u'meta'][u'code'] is not 304:
-                data = requestServerData(messagesURL, params=params)
+                data = requestserverdata(messagesURL, params=params)
         else:
             metaCode = data[u'meta']['code']
             print(metaCode)
@@ -93,8 +73,9 @@ def fetchMessages(messagesURL):
             return fetchComplete
 
 
-def fetchGroups(url):
-    data = requestServerData(url, params={})
+def fetchgroups():
+    url = "https://api.groupme.com/v3/groups"
+    data = requestserverdata(url)
     metaCode = data[u'meta'][u'code']
     if metaCode != 200:
         error(metaCode)
@@ -117,23 +98,7 @@ def error(metaCode):
     return complete
 
 
-def mostRecentIs(group) -> object:
-    """
-
-    :rtype : int of the most recent ID of the group selected
-    """
-    global groupData
-    with open(groupData) as f:
-        data = f.read()
-    data = json.loads(data)
-    f.close()
-    for x in data:
-        if x[u'id'] == group:
-            mostRecentMessageID = x[u'messages'][u'last_message_id']
-            return mostRecentMessageID
-
-
-def requestServerData(url, params):
+def requestserverdata(url, group='', params={}):
     """
 
     :rtype : JSON object
