@@ -15,9 +15,9 @@ def makeConfigFile():
             json.dump(token, cfg)
             cfg.close()
 
-def loadgroups(groupsJson):
-    data = open(groupsJson, 'r+')
+def loadjsonreadonly(jsonfile):
+    data = open(jsonfile, 'r+')
     with data as f:
-        groups = json.load(f)
+        data = json.load(f)
         f.close()
-    return groups
+    return data

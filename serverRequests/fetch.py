@@ -8,7 +8,6 @@ import os
 
 url = "https://api.groupme.com/v3/groups"
 
-
 groupData = 'groups.json'
 
 
@@ -25,65 +24,75 @@ def default(self, o):
     # Let the base class default method raise the TypeError
     return json.JSONEncoder.default(self, o)
 
+
 def fetchmessages(group):
     groupID = group[u'id']
     messagesURL = 'https://api.groupme.com/v3/groups/' + groupID + '/messages'
     mostRecent = group[u'messages'][u'last_message_id']
-    jsonData = ()
+    jsonData = dict({u'messages': []})
     chatLogFileName = 'transcript-' + groupID + '.json'
     limit = 100
-    data = requestserverdata(messagesURL, params={'before_id': mostRecent, 'limit': limit})
     # metacode = data[u'meta']['code']
     totalMessages = group[u'messages'][u'count']
     print(totalMessages, 'messages remain.')
-    while totalMessages >= 0:
-        metacode = data[u'meta']['code']
-        first = data[u'response'][u'messages'][0][u'id']
+    finished = False
+    params = {'limit': 100}
+    while finished is not True:
+        if totalMessages != 0:
+            print('remaining messages:', totalMessages, 'Downloading next batch of', limit, 'messages.')
+            data = requestserverdata(messagesURL, params=params)
+        else:
+            finished = True
+        check = totalMessages - limit
+        if limit >= totalMessages:
+            limit = 1
+        first = data[u'response'][u'messages'][-1][u'id']
         params = {'before_id': first, 'limit': limit}
-        print(totalMessages - limit, 'remain')
         messages = data[u'response'][u'messages']
-        messages = zip(messages)
+        metacode = data[u'meta']['code']
+        print(metacode)
         for x in messages:
+            y = x[u'created_at']
+            jsonData[u'messages'].append(x)
             totalMessages -= 1
-            print('remaining messages:', totalMessages)
-            jsonData = jsonData + x
+            if totalMessages == 0:
+                print('No more messages to fetch!')
+                print('Dumping to', chatLogFileName, ".")
+                # jsonData = sorted(jsonData, key=lambda k: k[u'created_at'])
+                if os.path.isfile(chatLogFileName) is False:
+                    with open(chatLogFileName, "w+") as f:
+                        json.dump(jsonData, f, ensure_ascii=True, indent=4)
+                        f.close()
 
-        if totalMessages <= limit:
-            print('No more messages to fetch!')
-            print('Dumping to', chatLogFileName, ".")
-            print(type(metacode))
-            if os.path.isfile(chatLogFileName) is False:
-                with open(chatLogFileName, "w+") as f:
-                    json.dump(jsonData, f, ensure_ascii=False, indent=4)
-                    f.close()
-        data = requestserverdata(messagesURL, params=params)
 
-        # while fetchComplete is False:
-        #     metacode = data[u'meta']['code']
-        #     first = data[u'response'][u'messages'][0][u'id']
-        #     params = {'before_id': first, 'limit': limit}
-        #     print(totalMessages - limit, 'remain')
-        #     if metacode == 200 or metacode == 304:
-        #         messages = data[u'response'][u'messages']
-        #         messages = zip(messages)
-        #         for x in messages:
-        #             count += 1
-        #             totalMessages -= 1
-        #             print('remaining messages:', totalMessages)
-        #             jsonData = jsonData + x
-        #
-        #         if data[u'meta'][u'code'] == 304:
-        #             print('No more messages to fetch!')
-        #             print('Dumping to', chatLogFileName, ".")
-        #             if os.path.isfile(chatLogFileName) is False:
-        #                 with open(chatLogFileName, "w+") as f:
-        #                     json.dump(jsonData, f, ensure_ascii=False, indent=4)
-        #                     f.close()
-        #             fetchComplete = True
-        #     data = requestserverdata(messagesURL, params=params)
-        #     if metacode != 200:
-        #         print(metacode)
-        #         fetchComplete = True
+            # while fetchComplete is False:
+            #     metacode = data[u'meta']['code']
+            #     first = data[u'response'][u'messages'][0][u'id']
+            #     params = {'before_id': first, 'limit': limit}
+            #     print(totalMessages - limit, 'remain')
+            #     if metacode == 200 or metacode == 304:
+            #         messages = data[u'response'][u'messages']
+            #         messages = zip(messages)
+            #         for x in messages:
+            #             count += 1
+            #             totalMessages -= 1
+            #             print('remaining messages:', totalMessages)
+            #             jsonData = jsonData + x
+            #
+            #         if data[u'meta'][u'code'] == 304:
+            #             print('No more messages to fetch!')
+            #             print('Dumping to', chatLogFileName, ".")
+            #             if os.path.isfile(chatLogFileName) is False:
+            #                 with open(chatLogFileName, "w+") as f:
+            #                     json.dump(jsonData, f, ensure_ascii=False, indent=4)
+            #                     f.close()
+            #             fetchComplete = True
+            #     data = requestserverdata(messagesURL, params=params)
+            #     if metacode != 200:
+            #         print(metacode)
+            #         fetchComplete = True
+
+
 
 
 def fetchgroups():
@@ -133,10 +142,11 @@ def requestserverdata(url, group='', params={}):
     }
 
     r = requests.get(url, params=params, headers=payload)
-    data = r.text.replace(
-        '\ufffd', ':emoji:').replace('\U0001f601', ':Grinning-Smiley-With-Smiling Eyes:').replace('\U0001f60d',
-                                                                                                  ':Grinning-Smiley-With-Heart-Eyes').replace(
-        '\U0001f44c', ':Okay-Hand-Sign:')
+
+    data = r.text.replace('\ufffd', ':emoji:').replace('\U0001f601', ':Grinning-Smiley-With-Smiling Eyes:')
+    data = data.replace('\U0001f60d', ':Grinning-Smiley-With-Heart-Eyes').replace('\U0001f44c', ':Okay-Hand-Sign:')
+    data = data.replace('\U0001f61a', ':Kissing-Face-With-Closed-Eyes:').replace('\u270b', ':Raised-Hand:')
+    data = data.replace('\U0001f61c', ':Face-With-Stuck-Out-Tongue-And-Winking-Eye:')
     data = json.loads(data)
     return data
 
