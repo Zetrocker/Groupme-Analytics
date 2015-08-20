@@ -29,48 +29,61 @@ def fetchmessages(group):
     groupID = group[u'id']
     messagesURL = 'https://api.groupme.com/v3/groups/' + groupID + '/messages'
     mostRecent = group[u'messages'][u'last_message_id']
-    jsonData = {'messages': []}
-    chatLogFileName = 'transcript-' + group + '.json'
-    fetchComplete = False
+    jsonData = ()
+    chatLogFileName = 'transcript-' + groupID + '.json'
     limit = 100
     data = requestserverdata(messagesURL, params={'before_id': mostRecent, 'limit': limit})
+    # metacode = data[u'meta']['code']
     totalMessages = group[u'messages'][u'count']
-
     print(totalMessages, 'messages remain.')
-    count = 0
-    testLimit = 1000
-    while (fetchComplete is not True):
-        testLimit -= 100
+    while totalMessages >= 0:
+        metacode = data[u'meta']['code']
+        first = data[u'response'][u'messages'][0][u'id']
+        params = {'before_id': first, 'limit': limit}
         print(totalMessages - limit, 'remain')
-        if data[u'meta'][u'code'] == 304 or testLimit <= 0:
+        messages = data[u'response'][u'messages']
+        messages = zip(messages)
+        for x in messages:
+            totalMessages -= 1
+            print('remaining messages:', totalMessages)
+            jsonData = jsonData + x
+
+        if totalMessages <= limit:
             print('No more messages to fetch!')
             print('Dumping to', chatLogFileName, ".")
+            print(type(metacode))
             if os.path.isfile(chatLogFileName) is False:
                 with open(chatLogFileName, "w+") as f:
                     json.dump(jsonData, f, ensure_ascii=False, indent=4)
                     f.close()
-            fetchComplete = True
-            break
-        if data[u'meta'][u'code'] == 200:
-            messages = data[u'response'][u'messages']
-            messages = zip(messages)
-            first = data[u'response'][u'messages'][0][u'id']
-            params = {'before_id': first, 'limit': limit}
-            for x in messages:
-                count += 1
-                print(x[0][u'id'])
-                nextMessage = {'messages': x}
-                print(totalMessages)
-                totalMessages -= 1
-                print(totalMessages, 'remain.')
-                jsonData.update(nextMessage)
-            if data[u'meta'][u'code'] is not 304:
-                data = requestserverdata(messagesURL, params=params)
-        else:
-            metaCode = data[u'meta']['code']
-            print(metaCode)
-            fetchComplete = True
-            return fetchComplete
+        data = requestserverdata(messagesURL, params=params)
+
+        # while fetchComplete is False:
+        #     metacode = data[u'meta']['code']
+        #     first = data[u'response'][u'messages'][0][u'id']
+        #     params = {'before_id': first, 'limit': limit}
+        #     print(totalMessages - limit, 'remain')
+        #     if metacode == 200 or metacode == 304:
+        #         messages = data[u'response'][u'messages']
+        #         messages = zip(messages)
+        #         for x in messages:
+        #             count += 1
+        #             totalMessages -= 1
+        #             print('remaining messages:', totalMessages)
+        #             jsonData = jsonData + x
+        #
+        #         if data[u'meta'][u'code'] == 304:
+        #             print('No more messages to fetch!')
+        #             print('Dumping to', chatLogFileName, ".")
+        #             if os.path.isfile(chatLogFileName) is False:
+        #                 with open(chatLogFileName, "w+") as f:
+        #                     json.dump(jsonData, f, ensure_ascii=False, indent=4)
+        #                     f.close()
+        #             fetchComplete = True
+        #     data = requestserverdata(messagesURL, params=params)
+        #     if metacode != 200:
+        #         print(metacode)
+        #         fetchComplete = True
 
 
 def fetchgroups():

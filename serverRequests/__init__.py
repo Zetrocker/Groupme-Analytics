@@ -3,7 +3,7 @@ import sys
 
 from serverRequests.setup import makeConfigFile, loadgroups
 
-from serverRequests.fetch import fetchgroups, url, messagesURL
+from serverRequests.fetch import fetchgroups,fetchmessages
 
 from serverRequests.menus import selectGroupMenu
 
@@ -14,6 +14,7 @@ fetchgroups()
 group = loadgroups(groupsJson='groups.json')
 group = selectGroupMenu(group)
 
+fetchmessages(group)
 
 sys.exit()
 
