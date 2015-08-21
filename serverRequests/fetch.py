@@ -46,14 +46,16 @@ def fetchmessages(groupID, token):
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.45 Safari/537.22',
         'X-Access-Token': token
     }
-    url = str('https://api.groupme.com/v3/groups/' + repr(groupID) + '/messages')
+    filename = 'transcript-' + groupID + '.json'
+    url = 'https://api.groupme.com/v3/groups/' + groupID + '/messages'
     data = requests.get(url, params={}, headers=payload).json()
     jsondata = []
     complete = False
     count = 0
     while complete is not True:
 
-        data = data[u'response'][u'messages']
+        data = data[u'response']
+        data = data[u'messages']
         for messages in data:
 
             if messages[u'text'] is not None:
@@ -66,14 +68,15 @@ def fetchmessages(groupID, token):
             jsondata.append(messages)
             # print(messages)
         print(count)
+        print(len(data))
         if len(data) < 20:
-            with open('test.json', 'a+') as test:
-                json.dump(jsondata, test, indent=4, ensure_ascii=False, check_circular=False)
-                test.close()
+            with open(filename, 'w+') as f:
+                json.dump(jsondata, f, indent=4, ensure_ascii=False, check_circular=False)
+                f.close()
             complete = True
         else:
             params = {'before_id': data[-1][u'id']}
-            data = requests.get(messagesURL, params=params).json()
+            data = requests.get(url, params=params).json()
         return jsondata
 
 
@@ -110,7 +113,7 @@ def requestserverdata(url, group='', params={}):
     with open('configuration.cfg') as cfg:
         token = cfg.read()
         token = json.loads(token)
-        token = token[u'authentication'][0]
+        token = token[u'authentication']
         cfg.close()
 
     payload = {

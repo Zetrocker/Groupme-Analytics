@@ -14,10 +14,3 @@ def makeConfigFile():
             token = {'authentication': [token]}
             json.dump(token, cfg)
             cfg.close()
-
-def loadjsonreadonly(jsonfile):
-    data = open(jsonfile, 'r+')
-    with data as f:
-        data = json.load(f)
-        f.close()
-    return data
