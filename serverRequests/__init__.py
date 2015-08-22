@@ -9,14 +9,9 @@ from serverRequests.fetch import fetchgroups,fetchmessages
 
 from serverRequests.menus import selectGroupMenu
 
-from serverRequests.humanizor import forHumans
+from serverRequests.humanizor import humanizor
 
 makeConfigFile()
-
-with open('configuration.cfg', 'r+') as f:
-    token = json.load(f)
-    token = token[u'authentication']
-    f.close()
 
 fetchgroups()
 
@@ -26,12 +21,13 @@ with open('groups.json', 'r+') as f:
 
 group = selectGroupMenu(groups)
 
-groupID = group[u'id']
+# groupID = group[u'id']
+groupID = '6135045'
+fetchmessages(groupID, group)
 
-fetchmessages(groupID, token)
+
 #
 # chatLogFileName = 'transcript-' + groupID + '.json'
-# humanLogFileName = 'transcript-' + groupID + '.txt'
 #
 # jsondata = {}
 # with open(chatLogFileName, 'w+') as f:
@@ -39,8 +35,6 @@ fetchmessages(groupID, token)
 #     jsondata = sorted(key=lambda k: k[u'created_at'], reverse=True)
 #     f.close()
 #
-# print(jsondata)
-#
-# forHumans(chatLogFileName, jsondata)
+# humanizor(groupID)
 sys.exit()
 

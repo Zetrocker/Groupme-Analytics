@@ -5,26 +5,29 @@ import requests
 import time
 import sys
 import os
+import collections
+
+with open('configuration.cfg', 'r+') as f:
+    token = json.load(f)
+    token = token[u'authentication']
+    f.close()
+
 
 url = "https://api.groupme.com/v3/groups"
 
 groupData = 'groups.json'
 
+payload = {
+    'Accept': 'application/json, text/javascript',
+    'Accept-Charset': 'utf-8',
+    'Content-Type': 'application/json',
+    'Host': 'api.groupme.com',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.45 Safari/537.22',
+    'X-Access-Token': token
+}
+
 
 # humanLogFileName = 'transcript-' + group + '.txt'
-
-def makepayload(groupID, token):
-    payload = {
-        'Accept': 'application/json, text/javascript',
-        'Accept-Charset': 'utf-8',
-        'Content-Type': 'application/json',
-        'Host': 'api.groupme.com',
-        'Referer': 'https://api.groupme.com/v3/groups/' + groupID,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.45 Safari/537.22',
-        'X-Access-Token': token
-    }
-    return payload
-
 
 def default(self, o):
     try:
@@ -37,47 +40,44 @@ def default(self, o):
     return json.JSONEncoder.default(self, o)
 
 
-def fetchmessages(groupID, token):
-    payload = {
-        'Accept': 'application/json, text/javascript',
-        'Accept-Charset': 'utf-8',
-        'Content-Type': 'application/json',
-        'Host': 'api.groupme.com',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.45 Safari/537.22',
-        'X-Access-Token': token
-    }
+def fetchmessages(groupID, group):
+
+
+    global payload
+    totalmessages = group[u'messages'][u'count']
     filename = 'transcript-' + groupID + '.json'
     url = 'https://api.groupme.com/v3/groups/' + groupID + '/messages'
-    data = requests.get(url, params={}, headers=payload).json()
     jsondata = []
-    complete = False
-    count = 0
-    while complete is not True:
+    params = {}
+    parsed = 0
 
-        data = data[u'response']
-        data = data[u'messages']
-        for messages in data:
+    while parsed < totalmessages:
+        r = requests.get(url, params=params, headers=payload).json()
+        messages = r[u'response'][u'messages']
+        for message in messages:
+            createdat = message[u'created_at']
+            if message[u'text'] is not None:
+                for characters  in message[u'text']:
+                    characters = characters.encode('utf-8').strip()
+            # else:
+            #     item = ':something was weird here:'
+            #removed to test for character problems
+            # print(item[u'text'])
+            parsed += 1
+            #this will bring back a list of the messages as a dictionary
+            temp = collections.defaultdict(list)
+            for d in message:
+                for k, v in d.items():
+                    temp[k].append(v)
 
-            if messages[u'text'] is not None:
-                for text in messages[u'text']:
-                    text = text.encode('utf-8').strip()
-            else:
-                text = ':something was weird here:'
-
-            count += 1
-            jsondata.append(messages)
-            # print(messages)
-        print(count)
-        print(len(data))
-        if len(data) < 20:
-            with open(filename, 'w+') as f:
-                json.dump(jsondata, f, indent=4, ensure_ascii=False, check_circular=False)
-                f.close()
-            complete = True
-        else:
-            params = {'before_id': data[-1][u'id']}
-            data = requests.get(url, params=params).json()
-        return jsondata
+            jsondata.append(temp)
+        print(parsed)
+        params = {'before_id': messages[-1][u'id']}
+    if os.path.isfile(filename) is False:
+        with open(filename, 'w+', encoding='utf8') as f:
+            json.dump(jsondata, f, ensure_ascii=False, indent=2)
+            f.close()
+    return jsondata
 
 
 def fetchgroups():
@@ -110,21 +110,13 @@ def requestserverdata(url, group='', params={}):
 
     :rtype : JSON object
     """
+    global payload
     with open('configuration.cfg') as cfg:
         token = cfg.read()
         token = json.loads(token)
         token = token[u'authentication']
         cfg.close()
 
-    payload = {
-        'Accept': 'application/json, text/javascript',
-        'Accept-Charset': 'utf-8',
-        'Content-Type': 'application/json',
-        'Host': 'api.groupme.com',
-        'Referer': 'https://api.groupme.com/v3/groups/' + group,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.45 Safari/537.22',
-        'X-Access-Token': token
-    }
 
     r = requests.get(url, params=params, headers=payload)
 
