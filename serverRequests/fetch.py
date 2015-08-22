@@ -48,7 +48,7 @@ def fetchmessages(groupID, group):
     filename = 'transcript-' + groupID + '.json'
     url = 'https://api.groupme.com/v3/groups/' + groupID + '/messages'
     jsondata = []
-    params = {}
+    params = {'limit': 100}
     parsed = 0
 
     while parsed < totalmessages:
@@ -65,17 +65,19 @@ def fetchmessages(groupID, group):
             # print(item[u'text'])
             parsed += 1
             #this will bring back a list of the messages as a dictionary
-            temp = collections.defaultdict(list)
-            for d in message:
-                for k, v in d.items():
-                    temp[k].append(v)
-
-            jsondata.append(temp)
+            jsondata.append(message)
         print(parsed)
-        params = {'before_id': messages[-1][u'id']}
+        params = {'before_id': messages[-1][u'id'], 'limit': 100}
+    tempdic = {}
+    for dic in jsondata:
+        for key, value in dic.items():
+            if key in tempdic:
+                tempdic[key].append(value)
+            else:
+                tempdic[key] = [value]
     if os.path.isfile(filename) is False:
         with open(filename, 'w+', encoding='utf8') as f:
-            json.dump(jsondata, f, ensure_ascii=False, indent=2)
+            json.dump(tempdic, f, ensure_ascii=False, indent=2)
             f.close()
     return jsondata
 
