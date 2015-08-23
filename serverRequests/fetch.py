@@ -48,38 +48,34 @@ def fetchmessages(groupID, group):
     filename = 'transcript-' + groupID + '.json'
     url = 'https://api.groupme.com/v3/groups/' + groupID + '/messages'
     jsondata = []
-    params = {'limit': 100}
+    limit = 100
+    params = {'limit': limit}
     parsed = 0
 
     while parsed < totalmessages:
-        r = requests.get(url, params=params, headers=payload).json()
+        r = requests.get(url, params=params, headers=payload).text
+        r.encode(encoding='utf-8', errors='replace')
+        r = json.loads(r, encoding='utf-8')
         messages = r[u'response'][u'messages']
         for message in messages:
-            createdat = message[u'created_at']
             if message[u'text'] is not None:
-                for characters  in message[u'text']:
-                    characters = characters.encode('utf-8').strip()
-            # else:
-            #     item = ':something was weird here:'
-            #removed to test for character problems
-            # print(item[u'text'])
+                # for characters in message[u'text']:
+                message[u'text'] = message[u'text'].encode('utf-8', errors="replace").strip()
+
             parsed += 1
             #this will bring back a list of the messages as a dictionary
             jsondata.append(message)
-        print(parsed)
-        params = {'before_id': messages[-1][u'id'], 'limit': 100}
-    tempdic = {}
-    for dic in jsondata:
-        for key, value in dic.items():
-            if key in tempdic:
-                tempdic[key].append(value)
-            else:
-                tempdic[key] = [value]
+        percentcompete = parsed / totalmessages
+        print('{:.1%}'.format(percentcompete), 'downloaded')
+        params = {'before_id': messages[-1][u'id'], 'limit': limit}
+    messagelist = []
+    for dict in jsondata:
+        messagelist.append(dict)
     if os.path.isfile(filename) is False:
         with open(filename, 'w+', encoding='utf8') as f:
-            json.dump(tempdic, f, ensure_ascii=False, indent=2)
+            json.dump(messagelist, f, ensure_ascii=False, indent=2)
             f.close()
-    return jsondata
+    return messagelist
 
 
 def fetchgroups():
